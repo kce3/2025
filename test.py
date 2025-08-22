@@ -2,31 +2,18 @@ import streamlit as st
 import random
 
 # -----------------------
-# 1. 페이지 설정 + 배경색
+# 1. 페이지 설정 + 스타일
 # -----------------------
 st.set_page_config(page_title="오늘 뭐 먹지? 🍱", page_icon="🍽️", layout="centered")
+st.markdown("""
+<style>
+body {background-color: #FFF5E6; color:#4D2600;}
+.stButton>button {background-color: #FF8C42; color:white; font-size:16px;}
+</style>
+""", unsafe_allow_html=True)
 
-st.markdown(
-    """
-    <style>
-    body {
-        background-color: #FFF5E6;  /* 연한 주황빛 배경 */
-        color: #4D2600;             /* 글자 브라운톤 */
-    }
-    .stButton>button {
-        background-color: #FF8C42;  /* 식욕 돋는 주황 버튼 */
-        color: white;
-        font-size:16px;
-    }
-    .stSelectbox>div>div>div>select {
-        background-color: #FFF3E0; /* 드롭다운 색 */
-    }
-    </style>
-    """, unsafe_allow_html=True
-)
-
-st.title("🍽️ 오늘 뭐 먹지? 건강식 배달 추천")
-st.write("질환과 선호도를 고려해 오늘 한 끼 메뉴를 추천해드려요! 😋")
+st.title("🍽️ 오늘 건강식 메뉴 추천")
+st.write("질환과 선호도를 고려해 오늘의 한 끼~세 끼 메뉴를 추천합니다 😋")
 
 # -----------------------
 # 2. 사용자 입력
@@ -36,8 +23,18 @@ diseases = st.multiselect(
     ["고혈압", "당뇨", "고지혈증", "과체중/비만", "빈혈", "위염", "역류성 식도염", "아토피/알레르기", "골다공증"]
 )
 
+# 몇 끼 먹을지 선택
+meal_count = st.slider("오늘 몇 끼를 드실 예정인가요?", 1, 3, 1)
+
+# 메뉴 추천 방식 선택
+st.subheader("🍴 메뉴 추천 방식 선택")
+recommend_mode = st.radio(
+    "각 끼마다 메뉴를 어떻게 추천받을까요?",
+    ("시스템 랜덤 추천", "본인이 선택")
+)
+
 # -----------------------
-# 3. 메뉴 DB (가격 낮춤)
+# 3. 메뉴 DB
 # -----------------------
 menu_db = {
     "고혈압": [("저염 두부덮밥", 7000), ("고등어구이 정식", 8000), ("닭가슴살 샐러드", 7000)],
@@ -54,26 +51,39 @@ menu_db = {
 # -----------------------
 # 4. 추천 메뉴 계산
 # -----------------------
+recommended_menus = set()
 if diseases:
-    recommended_menus = set()
     for d in diseases:
         recommended_menus.update(menu_db.get(d, []))
-    recommended_menus = list(recommended_menus)
+recommended_menus = list(recommended_menus)
 
-    # -----------------------
-    # 5. 랜덤 메뉴 추천
-    # -----------------------
-    if st.button("🎯 오늘 한 끼 추천받기"):
-        if recommended_menus:
-            menu_name, price = random.choice(recommended_menus)
-            st.markdown(f"""
-            <div style="background-color:#FFEDD5; padding:20px; border-radius:15px; margin-top:10px;">
-            <h2 style="color:#FF6B35;">🍴 {menu_name}</h2>
-            <p style="font-size:18px; color:#6B4226;">💰 가격: {price}원</p>
-            <p style="font-size:16px;">오늘의 추천 건강식으로 맛있게 드세요! 😋</p>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.warning("선택한 질환에 맞는 추천 메뉴가 없습니다.")
-else:
-    st.info("먼저 하나 이상의 질환을 선택해주세요!")
+# 끼니 이름
+meal_names = ["🍳 아침", "🥗 점심", "🍲 저녁"][:meal_count]
+meals = {}
+
+# -----------------------
+# 5. 끼니별 메뉴 추천/선택
+# -----------------------
+for meal in meal_names:
+    st.subheader(f"{meal}")
+    if recommend_mode == "시스템 랜덤 추천":
+        menu_name, price = random.choice(recommended_menus)
+        meals[meal] = (menu_name, price)
+        st.markdown(f"- 추천 메뉴: **{menu_name}** 💰 {price}원")
+    else:  # 본인이 선택
+        options = [m[0] for m in recommended_menus]
+        choice = st.selectbox("메뉴 선택", ["선택하세요"] + options, key=meal)
+        if choice != "선택하세요":
+            price = next((p for n, p in recommended_menus if n == choice), 5000)
+            meals[meal] = (choice, price)
+
+# -----------------------
+# 6. 최종 주문 표시
+# -----------------------
+if meals and st.button("🚚 이 식단 주문하기"):
+    total_price = sum(price for _, price in meals.values())
+    st.subheader("✅ 주문 완료")
+    for meal_name, (menu_name, price) in meals.items():
+        st.write(f"{meal_name}: {menu_name} 💰 {price}원")
+    st.write(f"💰 **총 가격: {total_price}원**")
+    st.success("곧 건강식이 배송됩니다! 🥳")

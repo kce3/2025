@@ -2,7 +2,7 @@ import streamlit as st
 
 st.set_page_config(page_title="맞춤 건강식 배달", page_icon="🍱", layout="centered")
 st.title("🍱 질환별 맞춤 건강식 배달 서비스")
-st.write("여러 질환을 고려해 **배달 가능한 건강식 메뉴**를 추천합니다! 🚚")
+st.write("여러 질환을 고려해 배달 가능한 건강식 메뉴를 추천합니다! 🚚")
 
 # -----------------------
 # 1. 사용자 입력
@@ -13,9 +13,9 @@ diseases = st.multiselect(
 )
 
 st.subheader("🕒 원하는 끼니 선택")
-breakfast = st.checkbox("🍳 아침")
-lunch = st.checkbox("🥗 점심")
-dinner = st.checkbox("🍲 저녁")
+breakfast = st.checkbox("🍳 아침", value=True)
+lunch = st.checkbox("🥗 점심", value=True)
+dinner = st.checkbox("🍲 저녁", value=True)
 
 # -----------------------
 # 2. 질환별 추천 메뉴 + 가격
@@ -35,28 +35,27 @@ menu_db = {
 # -----------------------
 # 3. 추천 메뉴 계산
 # -----------------------
-if diseases and (breakfast or lunch or dinner):
+if diseases:
     # 선택한 질환 메뉴 합집합
     recommended_menus = set()
     for d in diseases:
         recommended_menus.update(menu_db.get(d, []))
 
-    recommended_menus = list(recommended_menus)
-    
-    st.subheader("✅ 추천 메뉴 😋")
+    recommended_menus = list(recommended_menus)[:3]  # 기본 3개 메뉴만 사용
+
+    st.subheader("✅ 기본 추천 메뉴 😋")
     for m, price in recommended_menus:
-        st.write(f"{m} 💰 {price}원")
+        st.write(f"- {m} 💰 {price}원")
 
     # -----------------------
     # 4. 끼니별 추천
     # -----------------------
-    st.subheader("🍴 선택한 끼니별 추천")
+    st.subheader("🍴 선택한 끼니별 메뉴")
     meals = [("🍳 아침", breakfast), ("🥗 점심", lunch), ("🍲 저녁", dinner)]
-    for meal_name, selected in meals:
-        if selected:
-            st.markdown(f"**{meal_name}**")
-            for m, price in recommended_menus[:3]:
-                st.write(f"- {m} 💰 {price}원")
+    for i, (meal_name, selected) in enumerate(meals):
+        if selected and i < len(recommended_menus):
+            m, price = recommended_menus[i]
+            st.markdown(f"**{meal_name}**: {m} 💰 {price}원")
 
     # -----------------------
     # 5. 주문 버튼
@@ -64,4 +63,4 @@ if diseases and (breakfast or lunch or dinner):
     if st.button("🚚 이 식단 주문하기"):
         st.success("주문 완료! 곧 건강식이 배송됩니다 🥳")
 else:
-    st.info("질환을 선택하고, 최소 한 끼 이상 선택해주세요!")
+    st.info("하나 이상의 질환을 선택해주세요!")

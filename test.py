@@ -12,11 +12,11 @@ body { background-color: #FFF8F0; font-size:20px; }
     box-shadow: 2px 2px 6px rgba(0,0,0,0.1); font-size:20px;
 }
 .highlight { font-weight:bold; font-size:22px; color:#D35400; }
-button { font-size:20px; padding:10px 20px; }
+button { font-size:20px; padding:10px 20px; margin-top:10px; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 질환별 메뉴 (각 끼니별 3~5개) ---
+# --- 질환별 메뉴 ---
 menus = {
     "당뇨": {"아침":["현미밥과 두부조림","귀리죽","닭가슴살 샐러드"],
            "점심":["닭가슴살 샐러드","채소비빔밥","현미밥과 채소볶음"],
@@ -49,21 +49,22 @@ prices = {menu: price for disease_menus in menus.values() for meal_list in disea
 # --- 제목 ---
 st.title("🥗 맞춤 건강 식단 주문하기")
 
-# --- 질환 여러개 선택 ---
+# --- 질환 선택 ---
 diseases = st.multiselect("질환을 선택하세요 (여러 개 선택 가능):", list(menus.keys()))
 st.markdown("---")
 
 meal_names = ["아침", "점심", "저녁"]
 chosen_meals = {}
 
+# --- 끼니별 메뉴 선택 ---
 for meal in meal_names:
     st.subheader(f"🍽 {meal} 메뉴 선택")
     
-    # 끼니별 메뉴 후보 합치기 (선택한 질환 모두 반영)
+    # 메뉴 후보 합치기
     combined_menu = []
     for d in diseases:
         combined_menu.extend(menus[d][meal])
-    combined_menu = list(dict.fromkeys(combined_menu))  # 중복 제거
+    combined_menu = list(dict.fromkeys(combined_menu))
     
     col1, col2 = st.columns(2)
     with col1:
@@ -76,12 +77,13 @@ for meal in meal_names:
         if menu:
             chosen_meals[meal] = menu
 
-# --- 선택 메뉴 표시 ---
-for meal, menu in chosen_meals.items():
-    st.markdown(f"<div class='meal-card'>✅ <span class='highlight'>{meal}: {menu} ({prices[menu]}원)</span></div>", unsafe_allow_html=True)
-
-# --- 총합 계산 ---
-if chosen_meals:
-    total = sum(prices[m] for m in chosen_meals.values())
-    st.markdown("---")
-    st.markdown(f"## 💰 총 합계: <span class='highlight'>{total}원</span>", unsafe_allow_html=True)
+# --- 주문하기 버튼 ---
+if st.button("🛒 주문하기"):
+    if chosen_meals:
+        st.markdown("## ✅ 주문 완료!")
+        for meal, menu in chosen_meals.items():
+            st.markdown(f"<div class='meal-card'>{meal}: {menu} ({prices[menu]}원)</div>", unsafe_allow_html=True)
+        total = sum(prices[m] for m in chosen_meals.values())
+        st.markdown(f"## 💰 총 합계: <span class='highlight'>{total}원</span>", unsafe_allow_html=True)
+    else:
+        st.warning("메뉴를 먼저 선택해주세요!")

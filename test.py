@@ -16,43 +16,67 @@ button { font-size:20px; padding:10px 20px; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 질환별 메뉴 ---
+# --- 질환별 메뉴 (각 끼니별 3~5개) ---
 menus = {
-    "당뇨": ["현미밥과 두부조림", "닭가슴살 샐러드", "귀리죽"],
-    "고혈압": ["저염 미역국과 보리밥", "채소비빔밥", "두부샐러드"],
-    "고지혈증": ["연어구이와 퀴노아", "시금치 나물밥", "두부버섯볶음"],
-    "위염": ["죽(야채죽/소고기죽)", "연두부덮밥", "계란찜"],
-    "과체중": ["닭가슴살 샐러드", "귀리 샐러드볼", "두부스테이크"],
-    "빈혈": ["시금치비빔밥", "소고기 미역국", "간장조림 두부"],
-    "아토피": ["현미밥과 채소볶음", "고구마 샐러드", "두부 스프"],
-    "골다공증": ["멸치볶음과 현미밥", "두부버섯탕", "치즈샐러드"]
+    "당뇨": {
+        "아침": ["현미밥과 두부조림", "귀리죽", "닭가슴살 샐러드"],
+        "점심": ["닭가슴살 샐러드", "채소비빔밥", "현미밥과 채소볶음"],
+        "저녁": ["두부버섯볶음", "연어구이와 퀴노아", "귀리죽"]
+    },
+    "고혈압": {
+        "아침": ["저염 미역국과 보리밥", "계란찜", "귀리죽"],
+        "점심": ["채소비빔밥", "두부샐러드", "현미밥과 채소볶음"],
+        "저녁": ["두부버섯탕", "닭가슴살 샐러드", "연어구이"]
+    },
+    "빈혈": {
+        "아침": ["시금치비빔밥", "소고기죽", "귀리죽"],
+        "점심": ["소고기 미역국", "닭가슴살 샐러드", "두부조림"],
+        "저녁": ["간장조림 두부", "시금치 나물밥", "연어구이"]
+    },
+    "아토피": {
+        "아침": ["현미밥과 채소볶음", "고구마 샐러드", "두부 스프"],
+        "점심": ["채소비빔밥", "닭가슴살 샐러드", "현미밥과 두부조림"],
+        "저녁": ["두부버섯탕", "연어구이", "귀리죽"]
+    },
+    "골다공증": {
+        "아침": ["멸치볶음과 현미밥", "두부 스프", "계란찜"],
+        "점심": ["두부버섯탕", "치즈샐러드", "채소비빔밥"],
+        "저녁": ["연어구이", "닭가슴살 샐러드", "현미밥과 두부조림"]
+    }
 }
-prices = {menu: price for menu_list in menus.values() for menu, price in zip(menu_list, [6000,6500,7000])}
+
+prices = {menu: price for disease_menus in menus.values() for meal_list in disease_menus.values() for menu, price in zip(meal_list, [6000,6500,7000])}
 
 # --- 제목 ---
-st.title("🥗 간편 건강 식단 주문하기")
+st.title("🥗 맞춤 건강 식단 주문하기")
 
-# --- 질환 선택 ---
-disease = st.selectbox("질환을 선택하세요:", list(menus.keys()))
-
+# --- 질환 여러개 선택 ---
+diseases = st.multiselect("질환을 선택하세요 (여러 개 선택 가능):", list(menus.keys()))
 st.markdown("---")
-st.write("원하는 끼니를 아래에서 선택하세요:")
 
 meal_names = ["아침", "점심", "저녁"]
 chosen_meals = {}
 
 for meal in meal_names:
-    st.subheader(f"🍽 {meal}")
+    st.subheader(f"🍽 {meal} 메뉴 선택")
+    
+    # 끼니별 메뉴 후보 합치기 (선택한 질환 모두 반영)
+    combined_menu = []
+    for d in diseases:
+        combined_menu.extend(menus[d][meal])
+    combined_menu = list(dict.fromkeys(combined_menu))  # 중복 제거
+    
     col1, col2 = st.columns(2)
     with col1:
         if st.button(f"{meal} 추천받기", key=f"rec_{meal}"):
-            menu = random.choice(menus[disease])
+            menu = random.choice(combined_menu)
             chosen_meals[meal] = menu
+            st.success(f"추천 메뉴: {menu} ({prices[menu]}원)")
     with col2:
-        menu = st.selectbox(f"{meal} 직접 선택", menus[disease], key=f"sel_{meal}")
+        menu = st.selectbox(f"{meal} 직접 선택", combined_menu, key=f"sel_{meal}")
         if menu:
             chosen_meals[meal] = menu
-    
+
 # --- 선택 메뉴 표시 ---
 for meal, menu in chosen_meals.items():
     st.markdown(f"<div class='meal-card'>✅ <span class='highlight'>{meal}: {menu} ({prices[menu]}원)</span></div>", unsafe_allow_html=True)

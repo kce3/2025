@@ -1,20 +1,7 @@
 import streamlit as st
 import random
 
-# --- 페이지 설정 ---
 st.set_page_config(page_title="건강 식단 추천", page_icon="🥗", layout="centered")
-st.markdown("""
-<style>
-body { background-color: #FFF8F0; font-size:20px; }
-.meal-card {
-    padding: 20px; margin: 10px 0;
-    border-radius: 15px; background-color: #FFEED9;
-    box-shadow: 2px 2px 6px rgba(0,0,0,0.1); font-size:20px;
-}
-.highlight { font-weight:bold; font-size:22px; color:#D35400; }
-button { font-size:20px; padding:10px 20px; margin-top:10px; }
-</style>
-""", unsafe_allow_html=True)
 
 # --- 질환별 메뉴 ---
 menus = {
@@ -46,7 +33,6 @@ menus = {
 
 prices = {menu: price for disease_menus in menus.values() for meal_list in disease_menus.values() for menu, price in zip(meal_list, [6000,6500,7000])}
 
-# --- 제목 ---
 st.title("🥗 맞춤 건강 식단 주문하기")
 
 # --- 질환 선택 ---
@@ -56,35 +42,45 @@ st.markdown("---")
 meal_names = ["아침", "점심", "저녁"]
 chosen_meals = {}
 
+# --- 끼니별 메뉴 상태 초기화 ---
+for meal in meal_names:
+    if f"options_{meal}" not in st.session_state:
+        # 질환 선택 메뉴들을 합쳐 초기 옵션 설정
+        combined_menu = []
+        for d in diseases:
+            combined_menu.extend(menus[d][meal])
+        st.session_state[f"options_{meal}"] = list(dict.fromkeys(combined_menu))
+    if f"selected_{meal}" not in st.session_state:
+        st.session_state[f"selected_{meal}"] = None
+
+# --- 끼니별 메뉴 선택 ---
 for meal in meal_names:
     st.subheader(f"🍽 {meal} 메뉴 선택")
     
-    # 메뉴 후보 합치기
-    combined_menu = []
-    for d in diseases:
-        combined_menu.extend(menus[d][meal])
-    combined_menu = list(dict.fromkeys(combined_menu))
-    
-    # 추천받기 버튼
-    if st.button(f"{meal} 추천받기", key=f"rec_{meal}"):
-        menu = random.choice(combined_menu)
-        chosen_meals[meal] = menu
-        # 추천 누르면 직접 선택 초기화
-        st.session_state[f"sel_{meal}"] = combined_menu[0]  # 기본값 설정
-        st.success(f"추천 메뉴: {menu} ({prices[menu]}원)")
-    
-    # 직접 선택 메뉴
-    menu = st.selectbox(f"{meal} 직접 선택", combined_menu, key=f"sel_{meal}")
-    if menu:
-        chosen_meals[meal] = menu
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button(f"{meal} 추천받기", key=f"rec_{meal}"):
+            if st.session_state[f"options_{meal}"]:
+                menu = random.choice(st.session_state[f"options_{meal}"])
+                chosen_meals[meal] = menu
+                st.success(f"추천 메뉴: {menu} ({prices[menu]}원)")
+                # 추천 후 드롭다운 초기화 (선택 메뉴 사라지게)
+                st.session_state[f"options_{meal}"] = [menu]
+                st.session_state[f"selected_{meal}"] = menu
+
+    with col2:
+        menu = st.selectbox(f"{meal} 직접 선택", st.session_state[f"options_{meal}"], key=f"sel_{meal}")
+        if menu:
+            chosen_meals[meal] = menu
+            st.session_state[f"selected_{meal}"] = menu
 
 # --- 주문하기 버튼 ---
 if st.button("🛒 주문하기"):
     if chosen_meals:
         st.markdown("## ✅ 주문 완료!")
         for meal, menu in chosen_meals.items():
-            st.markdown(f"<div class='meal-card'>{meal}: {menu} ({prices[menu]}원)</div>", unsafe_allow_html=True)
+            st.markdown(f"{meal}: {menu} ({prices[menu]}원)")
         total = sum(prices[m] for m in chosen_meals.values())
-        st.markdown(f"## 💰 총 합계: <span class='highlight'>{total}원</span>", unsafe_allow_html=True)
+        st.markdown(f"## 💰 총 합계: {total}원")
     else:
         st.warning("메뉴를 먼저 선택해주세요!")

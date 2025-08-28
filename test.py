@@ -10,24 +10,9 @@ menus = {
     "고혈압": {"아침":["저염 미역국과 보리밥","계란찜","귀리죽"],
             "점심":["채소비빔밥","두부샐러드","현미밥과 채소볶음"],
             "저녁":["두부버섯탕","닭가슴살 샐러드","연어구이"]},
-    "고지혈증": {"아침":["오트밀","연두부","시금치죽"],
-             "점심":["연어샐러드","퀴노아볼","채소비빔밥"],
-             "저녁":["두부버섯볶음","연어구이와 퀴노아","닭가슴살 구이"]},
-    "위염": {"아침":["죽(야채죽/소고기죽)","계란찜","연두부"],
-           "점심":["닭가슴살 샐러드","현미밥과 채소볶음","채소비빔밥"],
-           "저녁":["두부버섯탕","연어구이","귀리죽"]},
     "과체중": {"아침":["닭가슴살 샐러드","귀리 샐러드볼","두부스테이크"],
             "점심":["채소비빔밥","현미밥과 채소볶음","두부샐러드"],
-            "저녁":["연어구이","닭가슴살 구이","두부버섯탕"]},
-    "빈혈": {"아침":["시금치비빔밥","소고기죽","귀리죽"],
-           "점심":["소고기 미역국","닭가슴살 샐러드","두부조림"],
-           "저녁":["간장조림 두부","시금치 나물밥","연어구이"]},
-    "아토피": {"아침":["현미밥과 채소볶음","고구마 샐러드","두부 스프"],
-            "점심":["채소비빔밥","닭가슴살 샐러드","현미밥과 두부조림"],
-            "저녁":["두부버섯탕","연어구이","귀리죽"]},
-    "골다공증": {"아침":["멸치볶음과 현미밥","두부 스프","계란찜"],
-             "점심":["두부버섯탕","치즈샐러드","채소비빔밥"],
-             "저녁":["연어구이","닭가슴살 샐러드","현미밥과 두부조림"]}
+            "저녁":["연어구이","닭가슴살 구이","두부버섯탕"]}
 }
 
 prices = {menu: price for disease_menus in menus.values() for meal_list in disease_menus.values() for menu, price in zip(meal_list, [6000,6500,7000])}
@@ -43,35 +28,40 @@ chosen_meals = {}
 
 # 세션 상태 초기화
 for meal in meal_names:
-    if f"options_{meal}" not in st.session_state:
+    key_options = f"options_{meal}"
+    key_selected = f"selected_{meal}"
+    if key_options not in st.session_state:
         combined_menu = []
         for d in diseases:
             combined_menu.extend(menus[d][meal])
-        st.session_state[f"options_{meal}"] = list(dict.fromkeys(combined_menu))
-    if f"selected_{meal}" not in st.session_state:
-        st.session_state[f"selected_{meal}"] = None
+        st.session_state[key_options] = list(dict.fromkeys(combined_menu))
+    if key_selected not in st.session_state:
+        st.session_state[key_selected] = None
 
 # 메뉴 선택
 for meal in meal_names:
     st.subheader(f"🍽 {meal} 메뉴 선택")
-    combined_menu = st.session_state[f"options_{meal}"]
+    options_key = f"options_{meal}"
+    selected_key = f"selected_{meal}"
+    combined_menu = st.session_state[options_key]
 
-    col1,col2 = st.columns(2)
+    col1, col2 = st.columns(2)
     with col1:
         if st.button(f"{meal} 추천받기", key=f"rec_{meal}"):
             if combined_menu:
                 menu = random.choice(combined_menu)
                 chosen_meals[meal] = menu
                 st.success(f"추천 메뉴: {menu} ({prices[menu]}원)")
-                # 추천 메뉴가 선택창에서 사라지게
-                st.session_state[f"options_{meal}"] = [m for m in combined_menu if m != menu]
-                st.session_state[f"selected_{meal}"] = menu
+                # 추천 메뉴는 드롭다운에서 제외
+                st.session_state[options_key] = [m for m in combined_menu if m != menu]
+                st.session_state[selected_key] = menu
+
     with col2:
-        if combined_menu:
-            menu = st.selectbox(f"{meal} 직접 선택", combined_menu, key=f"sel_{meal}")
-            if menu:
-                chosen_meals[meal] = menu
-                st.session_state[f"selected_{meal}"] = menu
+        # 드롭다운은 추천 메뉴 제외한 나머지 옵션
+        menu = st.selectbox(f"{meal} 직접 선택", st.session_state[options_key], key=f"sel_{meal}")
+        if menu:
+            chosen_meals[meal] = menu
+            st.session_state[selected_key] = menu
 
 # 주문하기
 if st.button("🛒 주문하기"):

@@ -1,89 +1,76 @@
 import streamlit as st
 import random
 
-# -----------------------
-# 1. 페이지 설정 + 스타일
-# -----------------------
-st.set_page_config(page_title="오늘 뭐 먹지? 🍱", page_icon="🍽️", layout="centered")
-st.markdown("""
-<style>
-body {background-color: #FFF5E6; color:#4D2600;}
-.stButton>button {background-color: #FF8C42; color:white; font-size:16px;}
-</style>
-""", unsafe_allow_html=True)
-
-st.title("🍽️ 오늘 건강식 메뉴 추천")
-st.write("질환과 선호도를 고려해 오늘의 한 끼~세 끼 메뉴를 추천합니다 😋")
-
-# -----------------------
-# 2. 사용자 입력
-# -----------------------
-diseases = st.multiselect(
-    "💊 가지고 있는 질환 선택 (1개 이상)",
-    ["고혈압", "당뇨", "고지혈증", "과체중/비만", "빈혈", "위염", "역류성 식도염", "아토피/알레르기", "골다공증"]
-)
-
-# 몇 끼 먹을지 선택
-meal_count = st.slider("오늘 몇 끼를 드실 예정인가요?", 1, 3, 1)
-
-# 메뉴 추천 방식 선택
-st.subheader("🍴 메뉴 추천 방식 선택")
-recommend_mode = st.radio(
-    "각 끼마다 메뉴를 어떻게 추천받을까요?",
-    ("시스템 랜덤 추천", "본인이 선택")
-)
-
-# -----------------------
-# 3. 메뉴 DB
-# -----------------------
-menu_db = {
-    "고혈압": [("저염 두부덮밥", 7000), ("고등어구이 정식", 8000), ("닭가슴살 샐러드", 7000)],
-    "당뇨": [("현미밥 도시락", 7500), ("연어샐러드", 8500), ("두부스테이크 도시락", 7500)],
-    "고지혈증": [("귀리죽", 6500), ("연어스테이크", 9000), ("채소구이 플래터", 8000)],
-    "과체중/비만": [("다이어트 도시락", 7500), ("그릭요거트볼", 6500), ("퀴노아 샐러드", 7000)],
-    "빈혈": [("소고기 미역국 정식", 8000), ("간볶음 덮밥", 7500), ("시금치 오믈렛 도시락", 7000)],
-    "위염": [("양배추죽", 6000), ("감자수프", 6500), ("바나나 스무디", 5500)],
-    "역류성 식도염": [("닭죽", 6000), ("흰살생선구이", 7500), ("채소스프 + 호밀빵", 7000)],
-    "아토피/알레르기": [("기본 도시락(쌀밥+채소+달걀)", 7000), ("사과 샐러드", 6000), ("채식 도시락", 7500)],
-    "골다공증": [("두부 스테이크 정식", 7500), ("멸치볶음과 시금치나물 도시락", 7000), ("우유+요거트 스무디", 5500)]
+# ---------------------------
+# 질환별 추천 메뉴 데이터
+# ---------------------------
+menus = {
+    "고혈압": [("저염 한식 도시락", 6500), ("훈제 닭가슴살 샐러드", 7000), ("현미밥 & 나물 반찬 세트", 6000)],
+    "당뇨": [("곤약밥 & 연어 도시락", 7000), ("닭가슴살 샐러드", 6500), ("두부 스테이크 도시락", 6800)],
+    "고지혈증": [("귀리밥 & 채소구이", 6500), ("연어 샐러드", 7000), ("두부비빔밥", 6200)],
+    "위염": [("죽 세트(단호박/야채)", 5500), ("연두부 덮밥", 6000), ("양배추죽", 5800)],
+    "과체중": [("닭가슴살 샐러드", 6500), ("곤약비빔밥", 6200), ("현미 샌드위치", 6000)],
+    "빈혈": [("소고기 미역국 세트", 7000), ("시금치 달걀덮밥", 6500), ("간연어 도시락", 7200)],
+    "아토피": [("현미밥 & 채소반찬", 6000), ("닭가슴살 채소볶음", 6500), ("두부 샐러드", 6200)],
+    "골다공증": [("멸치볶음 & 시래기밥", 6000), ("두부버섯찌개 세트", 6500), ("연어 스테이크 도시락", 7000)],
 }
 
-# -----------------------
-# 4. 추천 메뉴 계산
-# -----------------------
-recommended_menus = set()
-if diseases:
-    for d in diseases:
-        recommended_menus.update(menu_db.get(d, []))
-recommended_menus = list(recommended_menus)
+# ---------------------------
+# 페이지 설정
+# ---------------------------
+st.set_page_config(page_title="건강 맞춤 식단 주문 🍱", page_icon="🍲", layout="centered")
+st.markdown(
+    """
+    <style>
+    body {
+        background-color: #fff5e6; /* 따뜻한 베이지 톤 */
+    }
+    .stApp {
+        background-color: #fff5e6;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-# 끼니 이름
-meal_names = ["🍳 아침", "🥗 점심", "🍲 저녁"][:meal_count]
-meals = {}
+st.title("🍱 질환 맞춤 건강 식단 주문하기")
+st.write("본인의 건강 상태에 맞는 메뉴를 한 끼부터 세 끼까지 자유롭게 선택하세요!")
 
-# -----------------------
-# 5. 끼니별 메뉴 추천/선택
-# -----------------------
-for meal in meal_names:
-    st.subheader(f"{meal}")
-    if recommend_mode == "시스템 랜덤 추천":
-        menu_name, price = random.choice(recommended_menus)
-        meals[meal] = (menu_name, price)
-        st.markdown(f"- 추천 메뉴: **{menu_name}** 💰 {price}원")
-    else:  # 본인이 선택
-        options = [m[0] for m in recommended_menus]
-        choice = st.selectbox("메뉴 선택", ["선택하세요"] + options, key=meal)
-        if choice != "선택하세요":
-            price = next((p for n, p in recommended_menus if n == choice), 5000)
-            meals[meal] = (choice, price)
+# ---------------------------
+# 질환 선택
+# ---------------------------
+selected_conditions = st.multiselect("👉 본인이 가지고 있는 질환을 선택하세요", list(menus.keys()))
 
-# -----------------------
-# 6. 최종 주문 표시
-# -----------------------
-if meals and st.button("🚚 이 식단 주문하기"):
-    total_price = sum(price for _, price in meals.values())
-    st.subheader("✅ 주문 완료")
-    for meal_name, (menu_name, price) in meals.items():
-        st.write(f"{meal_name}: {menu_name} 💰 {price}원")
-    st.write(f"💰 **총 가격: {total_price}원**")
-    st.success("곧 건강식이 배송됩니다! 🥳")
+# ---------------------------
+# 몇 끼 주문할지 선택
+# ---------------------------
+meal_count = st.radio("👉 오늘 몇 끼 주문하시겠습니까?", [1, 2, 3])
+
+# ---------------------------
+# 추천받을지 직접 고를지
+# ---------------------------
+order_type = st.radio("👉 메뉴 선택 방식을 골라주세요", ["추천받기 🍀", "직접 고르기 ✋"])
+
+# ---------------------------
+# 주문 처리
+# ---------------------------
+if selected_conditions:
+    st.subheader("📌 오늘의 주문")
+
+    total_price = 0
+    meals = ["아침 🌅", "점심 🌞", "저녁 🌙"]
+
+    for i in range(meal_count):
+        if order_type == "추천받기 🍀":
+            condition = random.choice(selected_conditions)
+            menu, price = random.choice(menus[condition])
+            st.write(f"**{meals[i]}**: {menu} ({price}원) - 추천 질환: {condition}")
+        else:
+            condition = st.selectbox(f"{meals[i]} 메뉴를 고르세요", selected_conditions, key=f"cond_{i}")
+            menu, price = random.choice(menus[condition])
+            st.write(f"**{meals[i]}**: {menu} ({price}원) - 선택 질환: {condition}")
+        total_price += price
+
+    st.subheader(f"💰 총 합계: {total_price} 원")
+else:
+    st.warning("⚠️ 질환을 최소 1개 이상 선택해주세요!")

@@ -34,23 +34,26 @@ disease = st.selectbox("당신의 건강 상태에 맞는 질환을 선택하세
 st.markdown("---")
 
 # --- 끼니 수 선택 ---
-meal_count = st.radio("몇 끼를 드시겠습니까?", [1,2,3], horizontal=True)
-
+meal_count = st.radio("오늘 몇 끼를 드시겠습니까?", [1,2,3], horizontal=True)
 chosen_meals = {}
-meal_names = ["아침", "점심", "저녁"]
 
-# --- 메뉴 선택/추천 ---
+# --- 끼니별 메뉴 선택 ---
 for i in range(meal_count):
-    st.subheader(f"🍽 {meal_names[i]} 메뉴 선택")
-    method = st.radio(f"{meal_names[i]} 식사 방법 선택", ["추천받기 🤖", "내가 고르기 👤"], key=f"method_{i}")
-
+    st.subheader(f"🍽 {i+1}번째 끼니 메뉴 선택")
+    
+    # 사용자에게 끼니 종류 선택
+    meal_type = st.selectbox(f"{i+1}번째 끼니를 아침/점심/저녁 중 선택하세요", ["아침","점심","저녁"], key=f"type_{i}")
+    
+    # 추천/직접 선택
+    method = st.radio(f"{meal_type} 식사 방법 선택", ["추천받기 🤖", "내가 고르기 👤"], key=f"method_{i}")
+    
     if method == "추천받기 🤖":
         menu = random.choice(menus[disease])
     else:
-        menu = st.selectbox(f"{meal_names[i]} 메뉴를 고르세요", menus[disease], key=f"select_{i}")
-
-    chosen_meals[meal_names[i]] = menu
-    st.markdown(f"<div class='meal-card'>✅ <span class='highlight'>{meal_names[i]}: {menu} ({prices[menu]}원)</span></div>", unsafe_allow_html=True)
+        menu = st.selectbox(f"{meal_type} 메뉴를 고르세요", menus[disease], key=f"select_{i}")
+    
+    chosen_meals[meal_type] = menu
+    st.markdown(f"<div class='meal-card'>✅ <span class='highlight'>{meal_type}: {menu} ({prices[menu]}원)</span></div>", unsafe_allow_html=True)
 
 # --- 총합 계산 ---
 total = sum(prices[m] for m in chosen_meals.values())

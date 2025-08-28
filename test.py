@@ -3,7 +3,6 @@ import random
 
 st.set_page_config(page_title="건강 식단 추천", page_icon="🥗", layout="centered")
 
-# --- 질환별 메뉴 ---
 menus = {
     "당뇨": {"아침":["현미밥과 두부조림","귀리죽","닭가슴살 샐러드"],
            "점심":["닭가슴살 샐러드","채소비빔밥","현미밥과 채소볶음"],
@@ -35,17 +34,16 @@ prices = {menu: price for disease_menus in menus.values() for meal_list in disea
 
 st.title("🥗 맞춤 건강 식단 주문하기")
 
-# --- 질환 선택 ---
+# 질환 선택
 diseases = st.multiselect("질환을 선택하세요 (여러 개 선택 가능):", list(menus.keys()))
 st.markdown("---")
 
-meal_names = ["아침", "점심", "저녁"]
+meal_names = ["아침","점심","저녁"]
 chosen_meals = {}
 
-# --- 끼니별 메뉴 상태 초기화 ---
+# 세션 상태 초기화
 for meal in meal_names:
     if f"options_{meal}" not in st.session_state:
-        # 질환 선택 메뉴들을 합쳐 초기 옵션 설정
         combined_menu = []
         for d in diseases:
             combined_menu.extend(menus[d][meal])
@@ -53,28 +51,29 @@ for meal in meal_names:
     if f"selected_{meal}" not in st.session_state:
         st.session_state[f"selected_{meal}"] = None
 
-# --- 끼니별 메뉴 선택 ---
+# 메뉴 선택
 for meal in meal_names:
     st.subheader(f"🍽 {meal} 메뉴 선택")
-    
-    col1, col2 = st.columns(2)
+    combined_menu = st.session_state[f"options_{meal}"]
+
+    col1,col2 = st.columns(2)
     with col1:
         if st.button(f"{meal} 추천받기", key=f"rec_{meal}"):
-            if st.session_state[f"options_{meal}"]:
-                menu = random.choice(st.session_state[f"options_{meal}"])
+            if combined_menu:
+                menu = random.choice(combined_menu)
                 chosen_meals[meal] = menu
                 st.success(f"추천 메뉴: {menu} ({prices[menu]}원)")
-                # 추천 후 드롭다운 초기화 (선택 메뉴 사라지게)
-                st.session_state[f"options_{meal}"] = [menu]
+                # 추천 메뉴가 선택창에서 사라지게
+                st.session_state[f"options_{meal}"] = [m for m in combined_menu if m != menu]
+                st.session_state[f"selected_{meal}"] = menu
+    with col2:
+        if combined_menu:
+            menu = st.selectbox(f"{meal} 직접 선택", combined_menu, key=f"sel_{meal}")
+            if menu:
+                chosen_meals[meal] = menu
                 st.session_state[f"selected_{meal}"] = menu
 
-    with col2:
-        menu = st.selectbox(f"{meal} 직접 선택", st.session_state[f"options_{meal}"], key=f"sel_{meal}")
-        if menu:
-            chosen_meals[meal] = menu
-            st.session_state[f"selected_{meal}"] = menu
-
-# --- 주문하기 버튼 ---
+# 주문하기
 if st.button("🛒 주문하기"):
     if chosen_meals:
         st.markdown("## ✅ 주문 완료!")

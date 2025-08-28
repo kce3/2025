@@ -56,7 +56,6 @@ st.markdown("---")
 meal_names = ["아침", "점심", "저녁"]
 chosen_meals = {}
 
-# --- 끼니별 메뉴 선택 ---
 for meal in meal_names:
     st.subheader(f"🍽 {meal} 메뉴 선택")
     
@@ -66,16 +65,18 @@ for meal in meal_names:
         combined_menu.extend(menus[d][meal])
     combined_menu = list(dict.fromkeys(combined_menu))
     
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button(f"{meal} 추천받기", key=f"rec_{meal}"):
-            menu = random.choice(combined_menu)
-            chosen_meals[meal] = menu
-            st.success(f"추천 메뉴: {menu} ({prices[menu]}원)")
-    with col2:
-        menu = st.selectbox(f"{meal} 직접 선택", combined_menu, key=f"sel_{meal}")
-        if menu:
-            chosen_meals[meal] = menu
+    # 추천받기 버튼
+    if st.button(f"{meal} 추천받기", key=f"rec_{meal}"):
+        menu = random.choice(combined_menu)
+        chosen_meals[meal] = menu
+        # 추천 누르면 직접 선택 초기화
+        st.session_state[f"sel_{meal}"] = combined_menu[0]  # 기본값 설정
+        st.success(f"추천 메뉴: {menu} ({prices[menu]}원)")
+    
+    # 직접 선택 메뉴
+    menu = st.selectbox(f"{meal} 직접 선택", combined_menu, key=f"sel_{meal}")
+    if menu:
+        chosen_meals[meal] = menu
 
 # --- 주문하기 버튼 ---
 if st.button("🛒 주문하기"):
